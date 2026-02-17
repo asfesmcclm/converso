@@ -9,36 +9,43 @@
     <input type="file" id="excel_import" accept=".xlsx, .csv" />
     <pre id="json_output" style="background: #222; color: #fff; padding: 20px; border-radius: 10px; overflow: auto; max-height: 500px;"></pre>
 
-    <script>
-        document.getElementById('excel_import').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
+<script>
+    document.getElementById('excel_import').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
             
-            reader.onload = function(event) {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                
-                // Leemos la primera hoja
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                // Convertimos a JSON
-                const rawData = XLSX.utils.sheet_to_json(worksheet);
-                
-                // Mapeamos las columnas para que siempre tengan el mismo nombre en la PWA
-                const finalData = rawData.map(row => ({
-                    id: row["Documento"] || row["Dni"] || "S/N",
-                    empresa: row["Nombre Entidad / Nombre Centro Virtual"] || row["Nombre Entidad"] || "Sin Nombre",
-                    municipio: row["MUNICIPIO E"] || row["Municipio"] || "Desconocido",
-                    cif: row["Dni"] || "N/A",
-                    actividad: row["DATOS UGT A"] || "Sin actividad",
-                    tipo: row["Notas  Afiliado"] === "No" ? "BLANCA" : "CON ELECCIONES"
-                }));
+            // Convertimos a JSON
+            const rawData = XLSX.utils.sheet_to_json(worksheet);
+            
+            // Mapeo inteligente: Limpiamos espacios en los nombres de las columnas
+            const finalData = rawData.map(row => {
+                // Creamos una copia de la fila con los nombres de columnas "limpios"
+                const cleanRow = {};
+                Object.keys(row).forEach(key => {
+                    cleanRow[key.trim()] = row[key];
+                });
 
-                document.getElementById('json_output').textContent = "const empresas = " + JSON.stringify(finalData, null, 2) + ";";
-            };
-            reader.readAsArrayBuffer(file);
-        });
-    </script>
+                return {
+                    id: cleanRow["Id"] || "S/N",
+                    empresa: cleanRow["EMPRESA"] || "Sin Nombre",
+                    municipio: cleanRow["MUNICIPIO"] || "Desconocido",
+                    cif: cleanRow["CIF"] || "N/A",
+                    actividad: cleanRow["sector"] || "Sin actividad",
+                    // En tu Excel: "No" en blanca = Empresa Blanca (Rojo)
+                    tipo: String(cleanRow["blanca"]).trim().toLowerCase() === "no" ? "BLANCA" : "SI"
+                };
+            }).filter(e => e.empresa !== "Sin Nombre"); // Ignora filas vacías
+
+            document.getElementById('json_output').textContent = "const empresas = " + JSON.stringify(finalData, null, 2) + ";";
+        };
+        reader.readAsArrayBuffer(file);
+    });
+</script>    
 </body>
 </html>
