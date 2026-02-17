@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Censo Cuenca 2026</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root { --primary: #2c3e50; --blanca: #e74c3c; --si: #27ae60; }
+        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+        .header { position: sticky; top: 0; background: #f0f2f5; padding: 10px 0; z-index: 100; }
+        .search-box { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; border-left: 8px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card.BLANCA { border-left-color: var(--blanca); }
+        .card.SI { border-left-color: var(--si); }
+        .empresa-name { font-weight: bold; font-size: 1.1em; color: var(--primary); }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; color: white; margin-top: 10px; font-weight: bold; }
+        .bg-blanca { background: var(--blanca); }
+        .bg-si { background: var(--si); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <input type="text" id="buscador" class="search-box" placeholder="🔎 Buscar empresa o municipio...">
+    </div>
+    <div id="lista"></div>
+
+    <script src="datos.js"></script>
+    <script>
+        // Registro del Service Worker para modo offline
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
+        const lista = document.getElementById('lista');
+        const buscador = document.getElementById('buscador');
+
+        function render(filtro = "") {
+            lista.innerHTML = "";
+            const filtrados = empresas.filter(e => 
+                e.empresa.toLowerCase().includes(filtro.toLowerCase()) ||
+                e.municipio.toLowerCase().includes(filtro.toLowerCase())
+            );
+
+            filtrados.forEach(e => {
+                const esBlanca = e.tipo === 'BLANCA';
+                lista.innerHTML += `
+                    <div class="card ${esBlanca ? 'BLANCA' : 'SI'}">
+                        <div class="empresa-name">${e.empresa}</div>
+                        <div>📍 ${e.municipio}</div>
+                        <div>🆔 ${e.cif}</div>
+                        <span class="badge ${esBlanca ? 'bg-blanca' : 'bg-si'}">
+                            ${esBlanca ? 'EMPRESA BLANCA' : 'CON ELECCIONES'}
+                        </span>
+                    </div>
+                `;
+            });
+        }
+
+        buscador.addEventListener('input', (i) => render(i.target.value));
+        render();
+    </script>
+</body>
+</html>
