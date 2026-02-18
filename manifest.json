@@ -1,13 +1,20 @@
 {
-  "name": "Censo Empresas Cuenca",
+  "name": "Censo Empresas Cuenca 2026",
   "short_name": "Censo2026",
-  "start_url": "index.html",
+  "description": "Consulta del censo de empresas de Cuenca para las elecciones sindicales 2026",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f0f2f5",
   "theme_color": "#2c3e50",
+  "lang": "es",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2662/2662503.png",
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }

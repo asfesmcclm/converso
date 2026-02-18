@@ -6,59 +6,241 @@
     <title>Censo Cuenca 2026</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        :root { --primary: #2c3e50; --blanca: #e74c3c; --si: #27ae60; }
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
-        .header { position: sticky; top: 0; background: #f0f2f5; padding: 10px 0; z-index: 100; }
-        .search-box { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; border-left: 8px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        :root {
+            --primary: #2c3e50;
+            --blanca: #e74c3c;
+            --si: #27ae60;
+            --bg: #f0f2f5;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            padding: 12px 15px;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.8em;
+        }
+
+        .stat {
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .stat.total { background: var(--primary); }
+        .stat.blanca { background: var(--blanca); }
+        .stat.si { background: var(--si); }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box:focus { border-color: var(--primary); }
+
+        .lista-wrapper { padding: 10px 15px 20px; }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 7px solid #ccc;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            cursor: default;
+        }
+
         .card.BLANCA { border-left-color: var(--blanca); }
         .card.SI { border-left-color: var(--si); }
-        .empresa-name { font-weight: bold; font-size: 1.1em; color: var(--primary); }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; color: white; margin-top: 10px; font-weight: bold; }
-        .bg-blanca { background: var(--blanca); }
-        .bg-si { background: var(--si); }
+
+        .empresa-name {
+            font-weight: bold;
+            font-size: 1em;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .card-info {
+            font-size: 0.85em;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            color: white;
+            margin-top: 8px;
+            font-weight: bold;
+            letter-spacing: 0.3px;
+        }
+
+        .badge.BLANCA { background: var(--blanca); }
+        .badge.SI { background: var(--si); }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 1em;
+        }
+
+        .filtros {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-filtro {
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+            background: white;
+            transition: all 0.15s;
+        }
+
+        .btn-filtro.todos { border-color: var(--primary); color: var(--primary); }
+        .btn-filtro.todos.activo { background: var(--primary); color: white; }
+        .btn-filtro.blanca { border-color: var(--blanca); color: var(--blanca); }
+        .btn-filtro.blanca.activo { background: var(--blanca); color: white; }
+        .btn-filtro.si { border-color: var(--si); color: var(--si); }
+        .btn-filtro.si.activo { background: var(--si); color: white; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <input type="text" id="buscador" class="search-box" placeholder="🔎 Buscar empresa o municipio...">
+
+<div class="header">
+    <h1>🏭 Censo Empresas Cuenca 2026</h1>
+    <div class="stats">
+        <span class="stat total" id="stat-total">🔢 0</span>
+        <span class="stat si" id="stat-si">✅ 0 con elecciones</span>
+        <span class="stat blanca" id="stat-blanca">⚪ 0 blancas</span>
     </div>
+    <input type="text" id="buscador" class="search-box" placeholder="🔎 Buscar empresa, municipio o sector...">
+    <div class="filtros">
+        <button class="btn-filtro todos activo" data-tipo="todos">Todas</button>
+        <button class="btn-filtro si" data-tipo="SI">Con elecciones</button>
+        <button class="btn-filtro blanca" data-tipo="BLANCA">Empresas blancas</button>
+    </div>
+</div>
+
+<div class="lista-wrapper">
     <div id="lista"></div>
+</div>
 
-    <script src="datos.js"></script>
-    <script>
-        // Registro del Service Worker para modo offline
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+<script src="datos.js"></script>
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+
+    const lista = document.getElementById('lista');
+    const buscador = document.getElementById('buscador');
+    const botonesFiltro = document.querySelectorAll('.btn-filtro');
+    let filtroTipo = 'todos';
+
+    // Actualiza contadores del header
+    function actualizarStats(filtrados) {
+        const total = filtrados.length;
+        const si = filtrados.filter(e => e.tipo === 'SI').length;
+        const blanca = filtrados.filter(e => e.tipo === 'BLANCA').length;
+        document.getElementById('stat-total').textContent = `🔢 ${total}`;
+        document.getElementById('stat-si').textContent = `✅ ${si} con elecciones`;
+        document.getElementById('stat-blanca').textContent = `⚪ ${blanca} blancas`;
+    }
+
+    function render(texto = '') {
+        const textoBajo = texto.toLowerCase();
+
+        let filtrados = empresas.filter(e => {
+            const coincideTexto =
+                (e.empresa || '').toLowerCase().includes(textoBajo) ||
+                (e.municipio || '').toLowerCase().includes(textoBajo) ||
+                (e.sector || '').toLowerCase().includes(textoBajo) ||
+                (e.cif || '').toLowerCase().includes(textoBajo);
+            const coincideTipo = filtroTipo === 'todos' || e.tipo === filtroTipo;
+            return coincideTexto && coincideTipo;
+        });
+
+        actualizarStats(filtrados);
+
+        if (filtrados.length === 0) {
+            lista.innerHTML = '<div class="no-results">😕 No se encontraron resultados</div>';
+            return;
         }
 
-        const lista = document.getElementById('lista');
-        const buscador = document.getElementById('buscador');
-
-        function render(filtro = "") {
-            lista.innerHTML = "";
-            const filtrados = empresas.filter(e => 
-                e.empresa.toLowerCase().includes(filtro.toLowerCase()) ||
-                e.municipio.toLowerCase().includes(filtro.toLowerCase())
-            );
-
-            filtrados.forEach(e => {
-                const esBlanca = e.tipo === 'BLANCA';
-                lista.innerHTML += `
-                    <div class="card ${esBlanca ? 'BLANCA' : 'SI'}">
-                        <div class="empresa-name">${e.empresa}</div>
-                        <div>📍 ${e.municipio}</div>
-                        <div>🆔 ${e.cif}</div>
-                        <span class="badge ${esBlanca ? 'bg-blanca' : 'bg-si'}">
-                            ${esBlanca ? 'EMPRESA BLANCA' : 'CON ELECCIONES'}
-                        </span>
+        // Construimos todo el HTML de una vez para evitar re-parseos innecesarios
+        const html = filtrados.map(e => {
+            const esBlanca = e.tipo === 'BLANCA';
+            return `
+                <div class="card ${esBlanca ? 'BLANCA' : 'SI'}">
+                    <div class="empresa-name">${e.empresa}</div>
+                    <div class="card-info">
+                        📍 ${e.municipio || '—'} ${e.cp ? '(' + e.cp + ')' : ''}<br>
+                        🆔 ${e.cif || '—'}<br>
+                        👷 ${e.trabajadores || '—'} trabajadores &nbsp;|&nbsp; 🏭 ${e.sector || '—'}
                     </div>
-                `;
-            });
-        }
+                    <span class="badge ${esBlanca ? 'BLANCA' : 'SI'}">
+                        ${esBlanca ? '⚪ EMPRESA BLANCA' : '✅ CON ELECCIONES'}
+                    </span>
+                </div>
+            `;
+        }).join('');
 
-        buscador.addEventListener('input', (i) => render(i.target.value));
-        render();
-    </script>
+        lista.innerHTML = html;
+    }
+
+    // Filtros de tipo
+    botonesFiltro.forEach(btn => {
+        btn.addEventListener('click', () => {
+            botonesFiltro.forEach(b => b.classList.remove('activo'));
+            btn.classList.add('activo');
+            filtroTipo = btn.dataset.tipo;
+            render(buscador.value);
+        });
+    });
+
+    buscador.addEventListener('input', e => render(e.target.value));
+
+    render();
+</script>
 </body>
 </html>

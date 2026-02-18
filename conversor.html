@@ -1,59 +1,137 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Generador Automático JSON</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor Excel → datos.js</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        h2 { color: #2c3e50; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .instrucciones { background: #eaf4fb; border-left: 5px solid #3498db; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.9em; line-height: 1.6; }
+        input[type="file"] { padding: 10px; border: 2px dashed #ccc; border-radius: 10px; width: 100%; font-size: 1em; cursor: pointer; }
+        input[type="file"]:hover { border-color: #3498db; }
+        #stats { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+        .stat { padding: 6px 14px; border-radius: 20px; color: white; font-weight: bold; font-size: 0.85em; }
+        .stat.total { background: #2c3e50; }
+        .stat.si { background: #27ae60; }
+        .stat.blanca { background: #e74c3c; }
+        #btn-copiar {
+            display: none;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #btn-copiar:hover { background: #219a52; }
+        #json_output {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 20px;
+            border-radius: 10px;
+            overflow: auto;
+            max-height: 450px;
+            font-size: 0.82em;
+            font-family: 'Courier New', monospace;
+            white-space: pre;
+        }
+    </style>
 </head>
 <body>
-    <h2>Automatizador de Registro Cuenca 2026</h2>
+
+<h2>🔄 Conversor Excel → <code>datos.js</code></h2>
+
+<div class="card">
+    <div class="instrucciones">
+        <strong>📋 Instrucciones:</strong><br>
+        1. Selecciona el archivo <code>.xlsx</code> con el censo de empresas.<br>
+        2. El archivo debe tener las columnas en este orden: <code>Id, EMPRESA, DIRECCIÓN, MUNICIPIO, CP, SSOCIAL, CIF, TRABAJADORES, CNAE, sector, blanca</code>.<br>
+        3. La primera fila debe ser la cabecera (se omite automáticamente).<br>
+        4. Copia el contenido generado y reemplaza el archivo <code>datos.js</code>.
+    </div>
     <input type="file" id="excel_import" accept=".xlsx, .csv" />
-    <pre id="json_output" style="background: #222; color: #fff; padding: 20px; border-radius: 10px; overflow: auto; max-height: 500px;"></pre>
+    <div id="stats"></div>
+</div>
+
+<div class="card">
+    <button id="btn-copiar" onclick="copiar()">📋 Copiar al portapapeles</button>
+    <pre id="json_output">Aquí aparecerá el contenido de datos.js tras cargar el Excel...</pre>
+</div>
 
 <script>
     document.getElementById('excel_import').addEventListener('change', function(e) {
         const file = e.target.files[0];
+        if (!file) return;
+
         const reader = new FileReader();
-        
         reader.onload = function(event) {
             const data = new Uint8Array(event.target.result);
-            const workbook = XLSX.read(data, {type: 'array'});
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            
-            // Leemos como matriz para ignorar nombres de cabecera que den error
-            const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-            
-            // Saltamos la fila de títulos (fila 0)
-            const dataRows = rows.slice(1);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-            const finalData = dataRows.map(row => {
-                // Si la columna B (Empresa) está vacía, ignoramos la fila
-                if (!row[1] || row[1] === "EMPRESA") return null;
+            // Omitir cabecera (fila 0) y filas sin empresa
+            const finalData = rows.slice(1).map(row => {
+                const empresa = row[1];
+                if (!empresa || String(empresa).trim() === '' || String(empresa).trim() === 'EMPRESA') return null;
+
+                // Columna "blanca": "Si" = empresa sin elecciones (BLANCA), "No" = con elecciones (SI)
+                const blancaVal = String(row[10] || '').trim().toLowerCase();
+                const tipo = blancaVal === 'si' ? 'BLANCA' : 'SI';
 
                 return {
-                    id: row[0] || "",             // Columna A (Id)
-                    empresa: String(row[1]).trim(), // Columna B (EMPRESA)
-                    direccion: row[2] || "",      // Columna C (DIRECCIÓN)
-                    municipio: row[3] || "",      // Columna D (MUNICIPIO)
-                    cp: row[4] || "",             // Columna E (CP)
-                    ssocial: row[5] || "",        // Columna F (SSOCIAL)
-                    cif: row[6] || "",            // Columna G (CIF)
-                    trabajadores: row[7] || "",   // Columna H (TRABAJADORES)
-                    cnae: row[8] || "",           // Columna I (CNAE)
-                    sector: row[9] || "",         // Columna J (sector)
-                    blanca: row[10] || "",        // Columna K (blanca)
-                    // Lógica para el color del marcador en tu mapa
-                    tipo: String(row[10] || "").trim().toLowerCase() === "no" ? "BLANCA" : "SI"
+                    id:          row[0] || '',
+                    empresa:     String(empresa).trim(),
+                    direccion:   String(row[2] || '').trim(),
+                    municipio:   String(row[3] || '').trim(),
+                    cp:          String(row[4] || '').trim(),
+                    ssocial:     String(row[5] || '').trim(),
+                    cif:         String(row[6] || '').trim(),
+                    trabajadores: row[7] || '',
+                    cnae:        String(row[8] || '').trim(),
+                    sector:      String(row[9] || '').trim(),
+                    tipo:        tipo
                 };
             }).filter(e => e !== null);
 
-            // Esto limpia lo anterior y pone lo nuevo
-            const outputElement = document.getElementById('json_output');
-            outputElement.textContent = ""; 
-            outputElement.textContent = "const empresas = " + JSON.stringify(finalData, null, 2) + ";";
+            // Estadísticas
+            const total = finalData.length;
+            const si = finalData.filter(e => e.tipo === 'SI').length;
+            const blanca = finalData.filter(e => e.tipo === 'BLANCA').length;
+            document.getElementById('stats').innerHTML = `
+                <span class="stat total">🔢 ${total} empresas</span>
+                <span class="stat si">✅ ${si} con elecciones</span>
+                <span class="stat blanca">⚪ ${blanca} blancas</span>
+            `;
+
+            const output = 'const empresas = ' + JSON.stringify(finalData, null, 2) + ';';
+            document.getElementById('json_output').textContent = output;
+            document.getElementById('btn-copiar').style.display = 'inline-block';
         };
         reader.readAsArrayBuffer(file);
     });
+
+    function copiar() {
+        const texto = document.getElementById('json_output').textContent;
+        navigator.clipboard.writeText(texto).then(() => {
+            const btn = document.getElementById('btn-copiar');
+            btn.textContent = '✅ ¡Copiado!';
+            setTimeout(() => btn.textContent = '📋 Copiar al portapapeles', 2000);
+        });
+    }
 </script>
 </body>
 </html>
