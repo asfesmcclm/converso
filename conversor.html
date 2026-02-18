@@ -20,23 +20,29 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Leemos como matriz para no depender de nombres de cabecera
+            // Leemos como matriz (fila por fila)
             const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
             
-            // Filtramos para quitar la fila de cabecera y filas vacías
+            // Saltamos la fila 0 (cabeceras)
             const dataRows = rows.slice(1);
 
             const finalData = dataRows.map(row => {
-                // Si la fila no tiene al menos el nombre de la empresa, la saltamos
-                if (!row[1] || row[1] === "EMPRESA") return null;
+                // Si la columna de Empresa (row[1]) está vacía, ignoramos la fila
+                if (!row[1]) return null;
 
                 return {
-                    id: row[0] || "S/N",                  // Columna A: Id
-                    empresa: String(row[1]).trim(),       // Columna B: EMPRESA
-                    municipio: row[3] || "Desconocido",   // Columna D: MUNICIPIO
-                    cif: row[6] || "N/A",                 // Columna G: CIF
-                    actividad: row[9] || "Sin actividad", // Columna J: sector
-                    // Columna K: blanca. Si pone "No", es BLANCA. Si no, SI.
+                    id: row[0] || "",
+                    empresa: String(row[1]).trim(),
+                    direccion: row[2] || "",      // DIRECCIÓN
+                    municipio: row[3] || "",      // MUNICIPIO
+                    cp: row[4] || "",             // CODIGO POSTAL
+                    ssocial: row[5] || "",        // SSOCIAL
+                    cif: row[6] || "",            // CIF
+                    trabajadores: row[7] || "",   // TRABAJADORES
+                    cnae: row[8] || "",           // CNAE
+                    sector: row[9] || "",         // sector
+                    blanca: row[10] || "",        // blanca
+                    // Mantenemos 'tipo' para la lógica de colores de tu web
                     tipo: String(row[10] || "").trim().toLowerCase() === "no" ? "BLANCA" : "SI"
                 };
             }).filter(e => e !== null);
@@ -45,6 +51,7 @@
         };
         reader.readAsArrayBuffer(file);
     });
-</script>    
+</script>
+
 </body>
 </html>
