@@ -20,24 +20,23 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Forzamos a que lea el Excel como una matriz (fila por fila)
-            // Esto evita problemas con los nombres de las cabeceras
+            // Leemos como matriz para no depender de nombres de cabecera
             const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
             
-            // Quitamos la primera fila (que son los títulos)
+            // Filtramos para quitar la fila de cabecera y filas vacías
             const dataRows = rows.slice(1);
 
             const finalData = dataRows.map(row => {
-                // row[0] es la 1ª columna (Id), row[1] la 2ª (Empresa), etc.
-                if (!row[1]) return null; // Si no hay nombre de empresa, ignoramos la fila
+                // Si la fila no tiene al menos el nombre de la empresa, la saltamos
+                if (!row[1] || row[1] === "EMPRESA") return null;
 
                 return {
-                    id: row[0] || "S/N",
-                    empresa: String(row[1]).trim(),
-                    municipio: row[3] || "Desconocido", // Columna D
-                    cif: row[6] || "N/A",               // Columna G
-                    actividad: row[9] || "Sin actividad", // Columna J (sector)
-                    // Columna K (blanca): Si pone "No", es tipo BLANCA
+                    id: row[0] || "S/N",                  // Columna A: Id
+                    empresa: String(row[1]).trim(),       // Columna B: EMPRESA
+                    municipio: row[3] || "Desconocido",   // Columna D: MUNICIPIO
+                    cif: row[6] || "N/A",                 // Columna G: CIF
+                    actividad: row[9] || "Sin actividad", // Columna J: sector
+                    // Columna K: blanca. Si pone "No", es BLANCA. Si no, SI.
                     tipo: String(row[10] || "").trim().toLowerCase() === "no" ? "BLANCA" : "SI"
                 };
             }).filter(e => e !== null);
@@ -46,6 +45,6 @@
         };
         reader.readAsArrayBuffer(file);
     });
-</script>
+</script>    
 </body>
 </html>
