@@ -20,33 +20,32 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Convertimos a JSON
-            const rawData = XLSX.utils.sheet_to_json(worksheet);
+            // Forzamos a que lea el Excel como una matriz (fila por fila)
+            // Esto evita problemas con los nombres de las cabeceras
+            const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
             
-            const finalData = rawData.map(row => {
-                // Creamos un objeto con las llaves en mayúsculas y sin espacios
-                const normalizedRow = {};
-                Object.keys(row).forEach(key => {
-                    normalizedRow[key.trim().toUpperCase()] = row[key];
-                });
+            // Quitamos la primera fila (que son los títulos)
+            const dataRows = rows.slice(1);
 
-                // Mapeamos buscando los nombres reales (ahora en mayúsculas)
+            const finalData = dataRows.map(row => {
+                // row[0] es la 1ª columna (Id), row[1] la 2ª (Empresa), etc.
+                if (!row[1]) return null; // Si no hay nombre de empresa, ignoramos la fila
+
                 return {
-                    id: normalizedRow["ID"] || "S/N",
-                    empresa: normalizedRow["EMPRESA"] || "Sin Nombre",
-                    municipio: normalizedRow["MUNICIPIO"] || "Desconocido",
-                    cif: normalizedRow["CIF"] || "N/A",
-                    actividad: normalizedRow["SECTOR"] || "Sin actividad",
-                    // Lógica para el color (Empresa Blanca si en la columna 'blanca' pone 'No')
-                    tipo: String(normalizedRow["BLANCA"] || "").trim().toLowerCase() === "no" ? "BLANCA" : "SI"
+                    id: row[0] || "S/N",
+                    empresa: String(row[1]).trim(),
+                    municipio: row[3] || "Desconocido", // Columna D
+                    cif: row[6] || "N/A",               // Columna G
+                    actividad: row[9] || "Sin actividad", // Columna J (sector)
+                    // Columna K (blanca): Si pone "No", es tipo BLANCA
+                    tipo: String(row[10] || "").trim().toLowerCase() === "no" ? "BLANCA" : "SI"
                 };
-            }).filter(e => e.empresa !== "Sin Nombre" && e.empresa.trim() !== "");
+            }).filter(e => e !== null);
 
             document.getElementById('json_output').textContent = "const empresas = " + JSON.stringify(finalData, null, 2) + ";";
         };
         reader.readAsArrayBuffer(file);
     });
 </script>
-
 </body>
 </html>
