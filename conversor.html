@@ -20,38 +20,40 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Leemos como matriz (fila por fila)
+            // Leemos como matriz para ignorar nombres de cabecera que den error
             const rows = XLSX.utils.sheet_to_json(worksheet, {header: 1});
             
-            // Saltamos la fila 0 (cabeceras)
+            // Saltamos la fila de títulos (fila 0)
             const dataRows = rows.slice(1);
 
             const finalData = dataRows.map(row => {
-                // Si la columna de Empresa (row[1]) está vacía, ignoramos la fila
-                if (!row[1]) return null;
+                // Si la columna B (Empresa) está vacía, ignoramos la fila
+                if (!row[1] || row[1] === "EMPRESA") return null;
 
                 return {
-                    id: row[0] || "",
-                    empresa: String(row[1]).trim(),
-                    direccion: row[2] || "",      // DIRECCIÓN
-                    municipio: row[3] || "",      // MUNICIPIO
-                    cp: row[4] || "",             // CODIGO POSTAL
-                    ssocial: row[5] || "",        // SSOCIAL
-                    cif: row[6] || "",            // CIF
-                    trabajadores: row[7] || "",   // TRABAJADORES
-                    cnae: row[8] || "",           // CNAE
-                    sector: row[9] || "",         // sector
-                    blanca: row[10] || "",        // blanca
-                    // Mantenemos 'tipo' para la lógica de colores de tu web
+                    id: row[0] || "",             // Columna A (Id)
+                    empresa: String(row[1]).trim(), // Columna B (EMPRESA)
+                    direccion: row[2] || "",      // Columna C (DIRECCIÓN)
+                    municipio: row[3] || "",      // Columna D (MUNICIPIO)
+                    cp: row[4] || "",             // Columna E (CP)
+                    ssocial: row[5] || "",        // Columna F (SSOCIAL)
+                    cif: row[6] || "",            // Columna G (CIF)
+                    trabajadores: row[7] || "",   // Columna H (TRABAJADORES)
+                    cnae: row[8] || "",           // Columna I (CNAE)
+                    sector: row[9] || "",         // Columna J (sector)
+                    blanca: row[10] || "",        // Columna K (blanca)
+                    // Lógica para el color del marcador en tu mapa
                     tipo: String(row[10] || "").trim().toLowerCase() === "no" ? "BLANCA" : "SI"
                 };
             }).filter(e => e !== null);
 
-            document.getElementById('json_output').textContent = "const empresas = " + JSON.stringify(finalData, null, 2) + ";";
+            // Esto limpia lo anterior y pone lo nuevo
+            const outputElement = document.getElementById('json_output');
+            outputElement.textContent = ""; 
+            outputElement.textContent = "const empresas = " + JSON.stringify(finalData, null, 2) + ";";
         };
         reader.readAsArrayBuffer(file);
     });
 </script>
-
 </body>
 </html>
